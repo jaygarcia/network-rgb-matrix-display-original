@@ -1,0 +1,167 @@
+#include <cstdlib>
+#include <cstring>
+#include <iostream>
+#include <boost/asio.hpp>
+
+#include <stdlib.h>
+#include <vector>
+
+#include "NetworkDisplay.h"
+
+
+NetworkDisplay::NetworkDisplay( NetworkDisplayConfig config) {
+  mConfig = config;
+
+#ifdef __linux__
+  pthread_mutex_destroy(&mMutex);
+  pthread_mutex_init(&mMutex, NULL);
+#endif
+
+  InitNetworkSegments();
+
+  mFrameCount = 0;
+  mFrameRate = config.frameRate;
+
+  mInputBufferSize =  config.inputScreenWidth * config.inputScreenHeight * sizeof(uint16_t);
+  mInputBuffer1 = (uint16_t *)malloc(mInputBufferSize);
+  mInputBuffer2 = (uint16_t *)malloc(mInputBufferSize);
+  mCurrInBuffer = mInputBuffer1;
+
+  mOutputBufferSize = mTotalOutputPixels * sizeof(uint16_t);
+  mOutputBuffer1 = (uint16_t *)malloc(mOutputBufferSize);
+  mOutputBuffer2 = (uint16_t *)malloc(mOutputBufferSize);
+
+  mCurrOutBuffer = mOutputBuffer1;
+
+  mSinglePanelWidth = config.singlePanelWidth;
+  mSinglePanelHeight = config.singlePanelHeight;
+
+  mInputScreenWidth = config.inputScreenWidth;
+  mInputScreenHeight = config.inputScreenHeight;
+
+  mOutputScreenWidth  = config.totalPanelsWide * config.singlePanelWidth;
+  mOutputScreenHeight = config.totalPanelsTall * config.singlePanelHeight;
+
+  mSNow  = Milliseconds();
+  mSNext = mSNow + 1000 / config.frameRate;
+
+  StartThread();
+}
+
+
+void NetworkDisplay::InitNetworkSegments() {
+
+
+  int ipFinalDigit = mConfig.destinationIpStartDigit;
+
+  for (uint8_t i = 0; i < mConfig.totalSegments ; i++) {
+    SegmentClientConfig segmentConfig;
+
+    segmentConfig.segmentId = i;
+    segmentConfig.singlePanelHeight = mConfig.singlePanelHeight;
+    segmentConfig.singlePanelWidth = mConfig.singlePanelWidth;
+
+    segmentConfig.numPanelsWide =  mConfig.segmentPanelsTall;
+    segmentConfig.numPanelsTall = mConfig.segmentPanelsTall;
+
+
+    segmentConfig.destinationPort = mConfig.destinationPort;
+
+    char *destinationIp = (char *)malloc(strlen(mConfig.destinationIP));
+    sprintf(destinationIp, mConfig.destinationIP, ipFinalDigit++);
+    segmentConfig.destinationIP = destinationIp;
+
+    mTotalOutputPixels += (segmentConfig.singlePanelWidth * segmentConfig.singlePanelHeight) * segmentConfig.numPanelsWide * segmentConfig.numPanelsTall;
+
+    auto *segment = new SegmentClient(segmentConfig);
+    mSegments.push_back(segment);
+
+    segment->StartThread();
+  }
+
+  DescribeSegments();
+}
+
+
+
+void NetworkDisplay::ThreadFunction(NetworkDisplay *remoteDisplay) {
+  uint16_t currentFrame = 0;
+
+  while (remoteDisplay->GetThreadRunnning()) {
+
+    if (remoteDisplay->GetFrameCount() == currentFrame) {
+//      printf("NetworkDisplay sleeping...\n");
+      usleep(10);
+      continue;
+    }
+
+    for (int segmentIdx = 0; segmentIdx < remoteDisplay->mSegments.size(); segmentIdx++) {
+      SegmentClient *segment = remoteDisplay->mSegments[segmentIdx];
+
+      segment->LockMutex();
+
+      uint16_t startX = segmentIdx * segment->mSegmentWidth;
+
+      int startingColumn = (mOutputScreenWidth) + (startX);
+
+      for (uint16_t y = 0; y < segment->mSegmentHeight; y++) {
+        uint16_t *screenBuffer = &mCurrOutBuffer[(y * mOutputScreenWidth) + (startX)];
+        uint16_t *segmentBuffer = &segment->GetInputBuffer()[y * segment->mSegmentWidth];
+
+        memcpy(segmentBuffer, screenBuffer, segment->mSegmentWidth * sizeof(uint16_t));
+      }
+
+      segment->UnlockMutex();
+      segment->SwapBuffers();
+      segment->IncrementFrameCount();
+    }
+
+  }
+
+  printf("NetworkDisplay::ThreadFunction ended\n");
+}
+
+//uint32_t  color = 0;
+void NetworkDisplay::Update() {
+  LockMutex();
+  memcpy(mCurrOutBuffer, mCurrInBuffer, mOutputBufferSize);
+  UnlockMutex();
+
+  SwapBuffers();
+
+  mFrameCount++;
+  NextFrameDelay();
+}
+
+
+
+
+void NetworkDisplay::DescribeSegments() {
+  printf("I have %lu segments!\n", mSegments.size());
+  for (int i = 0; i < mSegments.size(); i++) {
+    mSegments[i]->Describe();
+  }
+}
+
+uint16_t *NetworkDisplay::GetInputBuffer() {
+  return mCurrInBuffer;
+}
+
+
+NetworkDisplay::~NetworkDisplay() {
+  mThreadRunning = false;
+  usleep(100);
+
+  if (mThread.joinable()) {
+    mThread.join();
+  }
+
+  for (int segmentIdx = 0; segmentIdx < mSegments.size(); segmentIdx++) {
+    mSegments[segmentIdx]->StopThread();
+  }
+
+  delete mInputBuffer1;
+  delete mInputBuffer2;
+  delete mOutputBuffer1;
+  delete mOutputBuffer2;
+}
