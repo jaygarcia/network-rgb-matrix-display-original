@@ -71,11 +71,10 @@ int main(int argc, char* argv[]) {
 
   std::thread(interrupterThread).detach();
   uint16_t color = 0;
-  while (! interrupt_received) {
 
+  while (! interrupt_received) {
     memset(networkDisplay->GetInputBuffer(), color += 1, networkDisplay->GetInputBufferSize());
     networkDisplay->Update();
-//    usleep(1000);
   }
 
 
