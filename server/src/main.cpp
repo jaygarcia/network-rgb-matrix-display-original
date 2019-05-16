@@ -113,24 +113,27 @@ void interrupterThread() {
 
 void start_matrix() {
 
-  RGBMatrix::Options mMatrixOptions;
+  RGBMatrix::Options matrix_options;
   rgb_matrix::RuntimeOptions runtime_opt;
 
   // I hard coded options here. You'll need to change this per your own specs!
-  mMatrixOptions.chain_length = numMatricesWide;
-  mMatrixOptions.cols = singlePanelWidth;
-  mMatrixOptions.rows = singlePanelHeight;
-  mMatrixOptions.parallel = 1;
+  matrix_options.chain_length = numMatricesWide;
+  matrix_options.cols = singlePanelWidth;
+  matrix_options.rows = singlePanelHeight;
+  matrix_options.parallel = 1;
+  matrix_options.scan_mode = 1;
+//  matrix_options.show_refresh_rate = true;
+  matrix_options.pwm_dither_bits =1;
 
 
-  RGBMatrix *matrix = CreateMatrixFromOptions(mMatrixOptions, runtime_opt);
+  RGBMatrix *matrix = CreateMatrixFromOptions(matrix_options, runtime_opt);
   if (matrix == NULL) {
     printf("ERROR! Could not create RGBMatrix instance!!!!\n");
     exit(1);
   }
 
   printf("Size: %dx%d. Hardware gpio mapping: %s\n",
-         matrix->width(), matrix->height(), mMatrixOptions.hardware_mapping);
+         matrix->width(), matrix->height(), matrix_options.hardware_mapping);
 
   matrixStrip = new MatrixStrip(matrix);
   matrixStrip->mTotalPixels = totalPixels;
