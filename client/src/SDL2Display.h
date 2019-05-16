@@ -8,7 +8,7 @@
 
 class SDL2Display {
 public :
-  SDL2Display(uint16_t screenHeight, uint16_t screenWidth) {
+  SDL2Display(uint16_t screenWidth, uint16_t screenHeight) {
     SDL_Init(SDL_INIT_VIDEO);              // Initialize SDL2
 
     uint16_t flags =  SDL_WINDOW_OPENGL | SDL_WINDOW_INPUT_FOCUS | SDL_WINDOW_RESIZABLE| SDL_WINDOW_SHOWN;
@@ -78,7 +78,7 @@ public :
     SDL_Quit();
   }
 
-  void Update(uint16_t *pixels, uint16_t totalBytes) {
+  void Update(uint16_t *pixels, uint16_t totalPixels) {
     // try to move window, to fix SDL2 bug on MacOS (Mojave)
     if (!hackInitialized){
       int x, y;
@@ -88,11 +88,21 @@ public :
       hackInitialized = true;
     }
 
-    void *screenBuf;
-    uint16_t pitch;
+    void *screenBuff;
+    int pitch;
 
-    if (0 == SDL_LockTexture(mTexture, nullptr, &screenBuf, &pitch)) {
-      memcpy(screenBuf, pixels, totalBytes);
+    if (0 == SDL_LockTexture(mTexture, nullptr, &screenBuff, &pitch)) {
+      auto *screenBits = (uint32_t *)screenBuff;
+
+      for (int i = 0; i < totalPixels; i++) {
+        uint32_t aPixel = pixels[i];
+
+        uint8_t red = (aPixel >> 16) & 0xFF;
+        uint8_t green = (aPixel >> 8) & 0xFF;
+        uint8_t blue = (aPixel >> 0) & 0xFF;
+        *screenBits++ = ((uint16_t(red & 0b11111000) << 8)) | ((uint16_t(green & 0b11111100) << 3)) | (uint16_t(blue) >> 3);
+        
+      }
       SDL_UnlockTexture(mTexture);
     }
     else {

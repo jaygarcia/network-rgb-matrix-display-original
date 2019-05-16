@@ -1,4 +1,4 @@
-#define __USE_SDL2_VIDEO__ 1
+
 #undef __USE_SDL2_VIDEO__
 
 
@@ -41,7 +41,7 @@ int main(int argc, char* argv[]) {
 
   NetworkDisplayConfig displayConfig;
 
-  displayConfig.frameRate = 60;
+  displayConfig.frameRate = 60; // -1 to disable
 
   displayConfig.inputScreenWidth = screenWidth;
   displayConfig.inputScreenHeight = screenHeight;
@@ -70,10 +70,10 @@ int main(int argc, char* argv[]) {
 
 
   std::thread(interrupterThread).detach();
-  uint16_t color = 1999;
+  uint16_t color = 0;
   while (! interrupt_received) {
 
-    memset(networkDisplay->mCurrInBuffer, color += 100, networkDisplay->GetInputBufferSize());
+    memset(networkDisplay->GetInputBuffer(), color += 1, networkDisplay->GetInputBufferSize());
     networkDisplay->Update();
 //    usleep(1000);
   }

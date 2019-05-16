@@ -104,6 +104,7 @@ private:
 
   pthread_mutex_t mMutex;
   std::thread mThread;
+
 };
 
 

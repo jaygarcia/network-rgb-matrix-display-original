@@ -5,10 +5,10 @@
 #include <thread>
 #include <time.h>
 #include <cmath>
+#include <unistd.h>
 
 #include "SegmentClient.h"
 #include "SDL2Display.h"
-
 
 struct NetworkDisplayConfig {
   size_t   inputBufferSize;
@@ -26,7 +26,7 @@ struct NetworkDisplayConfig {
   uint16_t totalPanelsTall;
 
   uint8_t totalSegments;
-  uint8_t frameRate;
+  int frameRate;
 
   uint8_t segmentPanelsTall;
   uint8_t segmentPanelsWide;
@@ -39,8 +39,6 @@ struct NetworkDisplayConfig {
 class NetworkDisplay {
 
 public:
-
-  bool mRunning;
 
   explicit NetworkDisplay(NetworkDisplayConfig config);
   ~NetworkDisplay();
@@ -64,7 +62,6 @@ public:
   }
 
 public:
-  uint16_t *mCurrInBuffer;
 
   bool GetThreadRunnning() {
     return mThreadRunning;
@@ -93,6 +90,10 @@ public:
   uint32_t mSNext;
 
   void NextFrameDelay() {
+    if (mFrameRate < 0) {
+      return;
+    }
+
     if (mSNow < mSNext) {
       usleep((mSNext - mSNow) * 1000);
       mSNow = Milliseconds();
@@ -121,7 +122,7 @@ public:
 private:
   NetworkDisplayConfig mConfig;
 
-  uint8_t mFrameRate;
+  int mFrameRate;
   uint16_t mScreenWidth;
   uint16_t mScreenHeight;
 
@@ -132,15 +133,15 @@ private:
 
   size_t mInputBufferSize;
   uint16_t mTotalInputPixels;
-
+  uint16_t *mCurrInBuffer;
   uint16_t *mInputBuffer1;
   uint16_t *mInputBuffer2;
 
   size_t mOutputBufferSize;
   uint16_t mTotalOutputPixels;
+  uint16_t *mCurrOutBuffer;
   uint16_t *mOutputBuffer1;
   uint16_t *mOutputBuffer2;
-  uint16_t *mCurrOutBuffer;
 
   uint16_t mOutputScreenWidth;
   uint16_t mOutputScreenHeight;
@@ -156,7 +157,9 @@ private:
   bool mThreadRunning;
   pthread_mutex_t mMutex;
 
-
+#ifdef __USE_SDL2_VIDEO__
+  SDL2Display *mSDL2Display;
+#endif
 };
 
 

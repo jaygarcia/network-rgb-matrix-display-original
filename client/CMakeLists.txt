@@ -16,10 +16,6 @@ INCLUDE_DIRECTORIES(
 )
 
 
-#Flip the image viertically
-add_compile_definitions(__MATRIX_STRIP_BOTTOM_UP__ true)
-
-
 # Currently using everything. Compilation is a little slower, we could work to remove items if we wish.
 file(
   GLOB SOURCE_FILES
@@ -29,13 +25,14 @@ file(
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/src)
 
 
+
 # Direct linux controls (non-SDL2!)
 if (DEFINED ENV{DEBUG_USE_SDL_WINDOW})
-    ADD_COMPILE_DEFINITIONS(__USE_SDL_VIDEO__=true)
+    ADD_COMPILE_DEFINITIONS(__USE_SDL2_VIDEO__=true)
     # CMake Module path (additional cmake files via find_package)
 
     FIND_PACKAGE(SDL2 REQUIRED)
-    FIND_PACKAGE(SDL2_image REQUIRED)
+#    FIND_PACKAGE(SDL2_image REQUIRED)
 
     INCLUDE_DIRECTORIES(
         ${SDL2_INCLUDE_DIR}
@@ -52,7 +49,7 @@ endif()
 
 
 
-add_executable(${PROJECT_NAME} ${SOURCE_FILES})
+add_executable(${PROJECT_NAME} example/main.cpp ${SOURCE_FILES})
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES} ${ADDITIONAL_LIBRARIES})
 
 

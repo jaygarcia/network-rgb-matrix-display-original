@@ -12,6 +12,7 @@
 NetworkDisplay::NetworkDisplay( NetworkDisplayConfig config) {
   mConfig = config;
 
+
 #ifdef __linux__
   pthread_mutex_destroy(&mMutex);
   pthread_mutex_init(&mMutex, NULL);
@@ -30,7 +31,6 @@ NetworkDisplay::NetworkDisplay( NetworkDisplayConfig config) {
   mOutputBufferSize = mTotalOutputPixels * sizeof(uint16_t);
   mOutputBuffer1 = (uint16_t *)malloc(mOutputBufferSize);
   mOutputBuffer2 = (uint16_t *)malloc(mOutputBufferSize);
-
   mCurrOutBuffer = mOutputBuffer1;
 
   mSinglePanelWidth = config.singlePanelWidth;
@@ -38,6 +38,7 @@ NetworkDisplay::NetworkDisplay( NetworkDisplayConfig config) {
 
   mInputScreenWidth = config.inputScreenWidth;
   mInputScreenHeight = config.inputScreenHeight;
+  mTotalInputPixels = mInputScreenWidth * mInputScreenHeight;
 
   mOutputScreenWidth  = config.totalPanelsWide * config.singlePanelWidth;
   mOutputScreenHeight = config.totalPanelsTall * config.singlePanelHeight;
@@ -46,6 +47,12 @@ NetworkDisplay::NetworkDisplay( NetworkDisplayConfig config) {
   mSNext = mSNow + 1000 / config.frameRate;
 
   StartThread();
+
+#ifdef __USE_SDL2_VIDEO__
+  mSDL2Display = new SDL2Display(mInputScreenWidth, mInputScreenHeight);
+#endif
+
+
 }
 
 
@@ -61,7 +68,7 @@ void NetworkDisplay::InitNetworkSegments() {
     segmentConfig.singlePanelHeight = mConfig.singlePanelHeight;
     segmentConfig.singlePanelWidth = mConfig.singlePanelWidth;
 
-    segmentConfig.numPanelsWide =  mConfig.segmentPanelsTall;
+    segmentConfig.numPanelsWide =  mConfig.segmentPanelsWide;
     segmentConfig.numPanelsTall = mConfig.segmentPanelsTall;
 
 
@@ -79,13 +86,14 @@ void NetworkDisplay::InitNetworkSegments() {
     segment->StartThread();
   }
 
-  DescribeSegments();
+//  DescribeSegments();
 }
 
 
 
 void NetworkDisplay::ThreadFunction(NetworkDisplay *remoteDisplay) {
   uint16_t currentFrame = 0;
+  uint16_t smallerSceen = mInputScreenWidth < mOutputScreenWidth ? mInputScreenWidth : mOutputScreenWidth;
 
   while (remoteDisplay->GetThreadRunnning()) {
 
@@ -95,6 +103,7 @@ void NetworkDisplay::ThreadFunction(NetworkDisplay *remoteDisplay) {
       continue;
     }
 
+
     for (int segmentIdx = 0; segmentIdx < remoteDisplay->mSegments.size(); segmentIdx++) {
       SegmentClient *segment = remoteDisplay->mSegments[segmentIdx];
 
@@ -102,10 +111,8 @@ void NetworkDisplay::ThreadFunction(NetworkDisplay *remoteDisplay) {
 
       uint16_t startX = segmentIdx * segment->mSegmentWidth;
 
-      int startingColumn = (mOutputScreenWidth) + (startX);
-
       for (uint16_t y = 0; y < segment->mSegmentHeight; y++) {
-        uint16_t *screenBuffer = &mCurrOutBuffer[(y * mOutputScreenWidth) + (startX)];
+        uint16_t *screenBuffer = &mCurrOutBuffer[(y * smallerSceen) + (startX)];
         uint16_t *segmentBuffer = &segment->GetInputBuffer()[y * segment->mSegmentWidth];
 
         memcpy(segmentBuffer, screenBuffer, segment->mSegmentWidth * sizeof(uint16_t));
@@ -121,13 +128,19 @@ void NetworkDisplay::ThreadFunction(NetworkDisplay *remoteDisplay) {
   printf("NetworkDisplay::ThreadFunction ended\n");
 }
 
-//uint32_t  color = 0;
+//uint3232_t  color = 0;
 void NetworkDisplay::Update() {
+//  SwapBuffers();
   LockMutex();
-  memcpy(mCurrOutBuffer, mCurrInBuffer, mOutputBufferSize);
-  UnlockMutex();
 
-  SwapBuffers();
+  size_t smallerBuffer = (mInputBufferSize < mOutputBufferSize) ? mInputBufferSize : mOutputBufferSize;
+  memcpy(mCurrOutBuffer, mCurrInBuffer, smallerBuffer);
+
+#ifdef __USE_SDL2_VIDEO__
+  mSDL2Display->Update(mCurrInBuffer, mTotalInputPixels);
+#endif
+
+  UnlockMutex();
 
   mFrameCount++;
   NextFrameDelay();
