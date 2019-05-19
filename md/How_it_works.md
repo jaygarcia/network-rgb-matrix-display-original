@@ -41,7 +41,7 @@ The `NetworkServer` class spawns a thread (`ReceiveDataThread`) and implements `
 
 
 ## Complex : one client, many servers, many panels
-This project's architecture can scale much greater than a few panels on a few displays.  The following image depicts an examle project where we need to provide enough pixel surface area for a 320 x 240 display.
+This project's architecture can scale much greater than a few panels on a few displays.  The following image depicts an example project where we need to provide enough pixel surface area for a 320 x 240 display.
 
 ![Complex Example Image](./img/how_it_works/complex-example.png)
 
@@ -49,6 +49,12 @@ We would elect to do something like this because we want to transfer the smalles
 
 This example works similarly to the the Client to Server communication explanation above, except for each Strip, an instance of the `SegmentClient` is instantiated, each with a specific target `Server` in mind.
 
+
+# Examples in action
+At the time of this writing, there is one [simple client example](../client/examples/simple.cpp) simply fills the displays with slid transitioning colors as a demonstration of execution. 
+
+Other examples include our [LaiNES emulator](https://github.com/jaygarcia/LaiNES-with-network-display) offline work.  To get this to run, you'll need to replicate the [complex hardware setup](https://github.com/jaygarcia/LaiNES-with-network-display/md/Hardware.md).
+ 
 
 ## Panel data wiring guide
 
