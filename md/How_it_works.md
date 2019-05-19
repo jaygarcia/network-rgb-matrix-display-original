@@ -17,7 +17,7 @@ This is the easiest of examples to imagine. You need to have one or more RGB Mat
 ![simple-setup-1.png](./img/how_it_works/simple-setup-1.png)
 
 The above image depicts a Pi acting in the role of a Client, but the truth is, any Linux or MacOS computer should work well.
-This [YouTube video](https://www.youtube.com/watch?v=gTtBLEOPpsM) is a great demonstration of the complex version of this client running on a linux PC with three Pis acting as `Servers` (pardon the wiring mess 😉). 
+This [YouTube video](https://www.youtube.com/watch?v=gTtBLEOPpsM) is a great demonstration of the complex version of this project running on a linux PC with three Pis acting as `Servers` (pardon the wiring mess 😉). 
 
 
 ### Client to server operation (Simple example)
