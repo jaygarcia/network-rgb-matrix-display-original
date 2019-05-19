@@ -165,7 +165,6 @@ void SegmentClient::Describe() {
 SegmentClient::~SegmentClient() {
   StopThread();
 
-
   delete mSegmentBuffer1;
   delete mSegmentBuffer2;
 }
