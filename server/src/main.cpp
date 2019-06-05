@@ -121,8 +121,9 @@ void start_matrix() {
   matrix_options.cols = singlePanelWidth;
   matrix_options.rows = singlePanelHeight;
   matrix_options.parallel = 1;
-  matrix_options.scan_mode = 1;
-//  matrix_options.show_refresh_rate = true;
+  // 0 progressive, 1 interlaced
+//  matrix_options.scan_mode = 1;
+  matrix_options.show_refresh_rate = true;
 //  matrix_options.pwm_dither_bits =1;
 
 
@@ -148,7 +149,7 @@ int main(int argc, char* argv[]) {
   signal(SIGTERM, InterruptHandler);
   signal(SIGINT, InterruptHandler);
 
-  printf("Server starting & expecting (%lu bytes)...\n", readBufferSize); fflush(stdout);
+//  printf("Server starting & expecting (%lu bytes)...\n", readBufferSize); fflush(stdout);
   char hostname[1024];
   hostname[1023] = '\0';
   gethostname(hostname, 1023);
@@ -168,12 +169,11 @@ int main(int argc, char* argv[]) {
   serverConfig.segmentId = 1;
   serverConfig.matrixStripInstance = matrixStrip;
 
-  usleep(1000);
+//  usleep(1000);
   server = new  NetworkServer(serverConfig);
   server->StartThread();
 
-  usleep(10);
-
+//  usleep(10);
   std::thread(interrupterThread).detach();
 
 

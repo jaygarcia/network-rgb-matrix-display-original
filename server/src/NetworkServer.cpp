@@ -44,17 +44,13 @@ NetworkServer::NetworkServer(struct NetworkServerConfig config) {
   mTotalPixels = mPixelsPerPanel * mPanelsWide * mPanelsTall;
   mTotalBytes = mTotalPixels * sizeof(uint16_t);
 
-  mSegmentBuffer1 = (uint16_t *)malloc(mTotalBytes);
-  mSegmentBuffer2 = (uint16_t *)malloc(mTotalBytes);
-
   mMatrixStrip = config.matrixStripInstance;
 
-  mInputBuffer = mSegmentBuffer1;
-  mOutputBuffer = mSegmentBuffer2;
   Describe();
 }
 
 uint32_t nColor = 0;
+
 void NetworkServer::ReceiveDataThread(tcp::socket sock) {
   int numBytesReceived = 0;
   uint16_t sbIndex = 0;
@@ -63,6 +59,8 @@ void NetworkServer::ReceiveDataThread(tcp::socket sock) {
   volatile clock_t end = 0;
 
   uint16_t data[mTotalBytes];
+  memset(data,0,mTotalBytes);
+//  auto *data = (uint16_t *)malloc(mTotalBytes);
   const char *returnData = "K";
 
   while (GetThreadRunning()) {
@@ -264,7 +262,4 @@ void NetworkServer::Describe() {
 
 NetworkServer::~NetworkServer() {
   StopThread();
-
-  delete mSegmentBuffer1;
-  delete mSegmentBuffer2;
 }

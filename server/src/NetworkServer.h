@@ -63,40 +63,13 @@ public:
   void UnlockMutex();
 
   void ClearBuffers() {
-    printf("%s\n", __FUNCTION__); fflush(stdout);
+    printf("%s\n", __FUNCTION__);
+    fflush(stdout);
     LockMutex();
-    memset(mSegmentBuffer1, 0, mTotalPixels);
-    memset(mSegmentBuffer2, 0, mTotalPixels);
+    mMatrixStrip->mRenderCanvas->Fill(0, 0, 0);
+    mMatrixStrip->mDisplayCanvas->Fill(0, 0, 0);
     mFrameCount++;
     UnlockMutex();
-  }
-
-  void WritePixel(uint16_t index, uint16_t color) {
-    LockMutex();
-    mInputBuffer[index] = color;
-    UnlockMutex();
-  }
-
-  void SwapBuffers() {
-    LockMutex();
-
-    if (mInputBuffer == mSegmentBuffer1) {
-      mInputBuffer = mSegmentBuffer2;
-      mOutputBuffer = mSegmentBuffer1;
-    }
-    else {
-      mInputBuffer = mSegmentBuffer1;
-      mOutputBuffer = mSegmentBuffer2;
-    }
-
-    UnlockMutex();
-  }
-
-  uint16_t *GetInputBuffer() {
-    return mInputBuffer;
-  }
-  uint16_t *GetOutputBuffer() {
-    return mOutputBuffer;
   }
 
   bool GetThreadRunning() {
@@ -118,12 +91,6 @@ public:
 private:
   volatile uint16_t mFrameCount;
   volatile bool mThreadRunning;
-
-  uint16_t *mSegmentBuffer1;
-  uint16_t *mSegmentBuffer2;
-
-  uint16_t *mInputBuffer;
-  uint16_t *mOutputBuffer;
 
   pthread_mutex_t mMutex;
   std::thread mThread;
