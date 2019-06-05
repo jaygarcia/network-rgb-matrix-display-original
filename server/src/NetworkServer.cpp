@@ -51,9 +51,10 @@ NetworkServer::NetworkServer(struct NetworkServerConfig config) {
 
   mInputBuffer = mSegmentBuffer1;
   mOutputBuffer = mSegmentBuffer2;
-//  Describe();
+  Describe();
 }
 
+uint32_t nColor = 0;
 void NetworkServer::ReceiveDataThread(tcp::socket sock) {
   int numBytesReceived = 0;
   uint16_t sbIndex = 0;
@@ -83,13 +84,6 @@ void NetworkServer::ReceiveDataThread(tcp::socket sock) {
       }
 
 
-      uint16_t *sBuffPtr = GetInputBuffer();
-
-      for (int i = 0; i < length; i++) {
-        sBuffPtr[sbIndex++] = data[i];
-      }
-
-
       boost::asio::write(sock, boost::asio::buffer(returnData, 1));
 
 
@@ -102,9 +96,36 @@ void NetworkServer::ReceiveDataThread(tcp::socket sock) {
         mAverage = (mTotalDelta / mNumberSamples) ;
         /// CLOCKS_PER_SEC
 
-//        mMatrixStrip->LockMutex();
-        memcpy(mMatrixStrip->GetInputBuffer(), GetInputBuffer(), mTotalBytes);
-//        mMatrixStrip->UnlockMutex();
+
+#ifdef __MATRIX_STRIP_BOTTOM_UP__
+        int ptrIndex = mTotalPixels - 1;
+#else
+        int ptrIndex = 0;
+#endif
+        uint16_t *outputBuff = data;
+
+        int col = 0;
+        int row = mMatrixStrip->mCanvasWidth;
+        for (; row > 0 ; row--) {
+
+          col = 0;
+          for (; col < mMatrixStrip->mCanvasHeight; col++) {
+
+#ifdef __MATRIX_STRIP_BOTTOM_UP__
+            uint16_t pixel = outputBuff[ptrIndex--];
+#else
+            uint16_t pixel = outputBuff[ptrIndex++];
+#endif
+            // todo: consider moving this to the other thread (Network Server)
+            // Color separation based off : https://stackoverflow.com/questions/38557734/how-to-convert-16-bit-hex-color-to-rgb888-values-in-c
+            uint8_t r = (pixel & 0xF800) >> 8;       // rrrrr... ........ -> rrrrr000
+            uint8_t g = (pixel & 0x07E0) >> 3;       // .....ggg ggg..... -> gggggg00
+            uint8_t b = (pixel & 0x1F) << 3;         // ............bbbbb -> bbbbb000
+
+            mMatrixStrip->GetRenderCanvas()->SetPixel(row, col, r, g, b);
+          }
+
+        }
 
         mMatrixStrip->mFrameCount++;
         break;
@@ -115,6 +136,57 @@ void NetworkServer::ReceiveDataThread(tcp::socket sock) {
       std::cerr <<  __FUNCTION__ << " Exception: " << e.what() << "\n";
     }
   }
+//  while (GetThreadRunning()) {
+//    try {
+//      start = clock();
+//
+//      boost::system::error_code error;
+//      size_t length = boost::asio::read(sock, boost::asio::buffer(&data, mTotalBytes), boost::asio::transfer_exactly(mTotalBytes), error);
+//
+//      numBytesReceived += length;
+//
+//      // Ended early! No bueno!
+//      if (error == boost::asio::error::eof){
+////        printf("Eof\n"); fflush(stdout);
+//        break;
+//      }
+//      else if (error) {
+//        throw boost::system::system_error(error); // Some other error.
+//      }
+//
+//
+//      uint16_t *sBuffPtr = GetInputBuffer();
+//
+//      memcpy(sBuffPtr, data, length);
+////      SwapBuffers();
+//
+//
+//      boost::asio::write(sock, boost::asio::buffer(returnData, 1));
+//
+//
+//      if (numBytesReceived == mTotalBytes) {
+//        end = clock();
+//
+//        mNumberSamples++;
+//        double delta = (end - start);
+//        mTotalDelta += delta;
+//        mAverage = (mTotalDelta / mNumberSamples) ;
+//        /// CLOCKS_PER_SEC
+//
+////        mMatrixStrip->LockMutex();
+//        memcpy(mMatrixStrip->GetRenderCanvas(), GetInputBuffer(), mTotalBytes);
+////        mMatrixStrip->UnlockMutex();
+////        memset(mMatrixStrip->GetInputBuffer(), nColor++, mTotalBytes);
+//
+//        mMatrixStrip->mFrameCount++;
+//        break;
+//      }
+//
+//    }
+//    catch (std::exception& e) {
+//      std::cerr <<  __FUNCTION__ << " Exception: " << e.what() << "\n";
+//    }
+//  }
 
   mFrameCount++;
 }

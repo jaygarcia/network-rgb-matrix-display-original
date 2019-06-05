@@ -16,39 +16,33 @@ using namespace rgb_matrix;
 class MatrixStrip : public ThreadedCanvasManipulator  {
 
 public:
-  MatrixStrip(RGBMatrix *m) ;
-
-  ~MatrixStrip() {
-    delete mSegmentBuffer1;
-    delete mSegmentBuffer2;
-  }
+  explicit MatrixStrip(RGBMatrix *m);
 
   void Run() override;
 
   size_t mTotalPixels;
   uint16_t mCanvasWidth;
   uint16_t mCanvasHeight;
-  uint16_t *mReceiverBuffer;
   volatile uint16_t mFrameCount;
-  uint16_t *mInputBuffer;
-  uint16_t *mOutputBuffer;
+
+  FrameCanvas *mRenderCanvas;
+  FrameCanvas *mDisplayCanvas;
   volatile bool mShouldRun;
 
 
-  uint16_t *mSegmentBuffer1;
-  uint16_t *mSegmentBuffer2;
+
 
 public:
   void SwapBuffers() {
     LockMutex();
 
-    if (mInputBuffer == mSegmentBuffer1) {
-      mInputBuffer = mSegmentBuffer2;
-      mOutputBuffer = mSegmentBuffer1;
+    if (mRenderCanvas == mCanvas1) {
+      mRenderCanvas = mCanvas2;
+      mDisplayCanvas = mCanvas1;
     }
     else {
-      mInputBuffer = mSegmentBuffer1;
-      mOutputBuffer = mSegmentBuffer2;
+      mRenderCanvas = mCanvas1;
+      mDisplayCanvas = mCanvas2;
     }
 
     UnlockMutex();
@@ -67,33 +61,27 @@ public:
   void ClearBuffers() {
 //    printf("%s\n", __FUNCTION__); fflush(stdout);
     LockMutex();
-    memset(mSegmentBuffer1, 0, mTotalPixels * sizeof(uint16_t));
-    memset(mSegmentBuffer2, 0, mTotalPixels * sizeof(uint16_t));
+    mCanvas1->Fill(0,0,0);
+    mCanvas2->Fill(0,0,0);
     mFrameCount++;
     UnlockMutex();
   }
 
-  void CopyNetworkData(uint16_t *aInData) {
-    memcpy(mInputBuffer, aInData, mTotalPixels);
-    SwapBuffers();
+  FrameCanvas *GetRenderCanvas() {
+    return mRenderCanvas;
   }
-
-  uint16_t *GetInputBuffer() {
-    return mInputBuffer;
-  }
-  uint16_t *GetOutputBuffer() {
-    return mOutputBuffer;
+  FrameCanvas *GetDisplayCanvas() {
+    return mDisplayCanvas;
   }
 
   void Describe();
 
 private:
-
-
+  FrameCanvas *mCanvas1;
+  FrameCanvas *mCanvas2;
 
 
   RGBMatrix *const mMatrix;
-  FrameCanvas *mOffScreenCanvas;
   pthread_mutex_t mMutex;
 
 };

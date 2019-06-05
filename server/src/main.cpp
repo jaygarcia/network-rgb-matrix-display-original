@@ -57,7 +57,7 @@ pthread_mutex_t bufferMutex;
 const uint16_t singlePanelWidth = 64;
 const uint16_t singlePanelHeight = 64;
 const uint16_t totalSinglePanelSize = (singlePanelHeight * singlePanelWidth);
-const uint16_t numMatricesWide = 3;
+const uint16_t numMatricesWide = 4;
 const uint16_t numMatricesTall = 1; // Should be 4!!
 const uint16_t totalPixels = totalSinglePanelSize * numMatricesWide * numMatricesTall;
 const size_t readBufferSize = totalPixels * sizeof(uint16_t);
@@ -89,7 +89,7 @@ void interrupterThread() {
     }
 
 //    server->LockMutex();
-    printf("avg %f      \r", server->mAverage);
+//    printf("avg %f      \r", server->mAverage);
 
     if (server->mAverage == priorAverage) {
       retries ++;
@@ -123,7 +123,7 @@ void start_matrix() {
   matrix_options.parallel = 1;
   matrix_options.scan_mode = 1;
 //  matrix_options.show_refresh_rate = true;
-  matrix_options.pwm_dither_bits =1;
+//  matrix_options.pwm_dither_bits =1;
 
 
   RGBMatrix *matrix = CreateMatrixFromOptions(matrix_options, runtime_opt);
@@ -158,8 +158,6 @@ int main(int argc, char* argv[]) {
 
 
   start_matrix();
-
-
 
   NetworkServerConfig serverConfig;
   serverConfig.incomingPort = 9890;
