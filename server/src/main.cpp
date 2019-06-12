@@ -93,7 +93,7 @@ void interrupterThread() {
 
     if (server->mAverage == priorAverage) {
       retries ++;
-      if (retries > 50) {
+      if (retries > 10) {
         server->mAverage = 0;
         retries = 0;
         matrixStrip->ClearBuffers();
@@ -124,7 +124,8 @@ void start_matrix() {
   // 0 progressive, 1 interlaced
 //  matrix_options.scan_mode = 1;
   matrix_options.show_refresh_rate = true;
-//  matrix_options.pwm_dither_bits =1;
+  matrix_options.pwm_dither_bits = 2;
+  matrix_options.pwm_bits = 4;
 
 
   RGBMatrix *matrix = CreateMatrixFromOptions(matrix_options, runtime_opt);

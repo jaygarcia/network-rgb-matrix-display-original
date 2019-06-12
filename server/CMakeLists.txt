@@ -15,6 +15,7 @@ INCLUDE_DIRECTORIES(
   ${Boost_INCLUDE_DIR}
 )
 
+#add_compile_definitions(REMOVE_DEPRECATED_TRANSFORMERS true);
 
 #Flip the image viertically
 add_compile_definitions(__MATRIX_STRIP_BOTTOM_UP__ true)

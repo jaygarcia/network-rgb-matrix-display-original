@@ -35,7 +35,7 @@ public:
 public:
   void SwapBuffers() {
     LockMutex();
-
+//    printf("SWAP\n");
     if (mRenderCanvas == mCanvas1) {
       mRenderCanvas = mCanvas2;
       mDisplayCanvas = mCanvas1;

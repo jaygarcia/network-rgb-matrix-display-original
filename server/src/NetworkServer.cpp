@@ -49,7 +49,7 @@ NetworkServer::NetworkServer(struct NetworkServerConfig config) {
   Describe();
 }
 
-uint32_t nColor = 0;
+uint16_t nColor = 0;
 
 void NetworkServer::ReceiveDataThread(tcp::socket sock) {
   int numBytesReceived = 0;
@@ -58,12 +58,14 @@ void NetworkServer::ReceiveDataThread(tcp::socket sock) {
   volatile clock_t start = 0;
   volatile clock_t end = 0;
 
-  uint16_t data[mTotalBytes];
-  memset(data,0,mTotalBytes);
+  static uint16_t data[32768];
+//  memset(data,0,mTotalBytes);
 //  auto *data = (uint16_t *)malloc(mTotalBytes);
   const char *returnData = "K";
 
   while (GetThreadRunning()) {
+    nColor = random() & UINT16_MAX;
+
     try {
       start = clock();
 
@@ -83,83 +85,6 @@ void NetworkServer::ReceiveDataThread(tcp::socket sock) {
 
 
       boost::asio::write(sock, boost::asio::buffer(returnData, 1));
-
-
-      if (numBytesReceived == mTotalBytes) {
-        end = clock();
-
-        mNumberSamples++;
-        double delta = (end - start);
-        mTotalDelta += delta;
-        mAverage = (mTotalDelta / mNumberSamples) ;
-        /// CLOCKS_PER_SEC
-
-
-#ifdef __MATRIX_STRIP_BOTTOM_UP__
-        int ptrIndex = mTotalPixels - 1;
-#else
-        int ptrIndex = 0;
-#endif
-        uint16_t *outputBuff = data;
-
-        int col = 0;
-        int row = mMatrixStrip->mCanvasWidth;
-        for (; row > 0 ; row--) {
-
-          col = 0;
-          for (; col < mMatrixStrip->mCanvasHeight; col++) {
-
-#ifdef __MATRIX_STRIP_BOTTOM_UP__
-            uint16_t pixel = outputBuff[ptrIndex--];
-#else
-            uint16_t pixel = outputBuff[ptrIndex++];
-#endif
-            // todo: consider moving this to the other thread (Network Server)
-            // Color separation based off : https://stackoverflow.com/questions/38557734/how-to-convert-16-bit-hex-color-to-rgb888-values-in-c
-            uint8_t r = (pixel & 0xF800) >> 8;       // rrrrr... ........ -> rrrrr000
-            uint8_t g = (pixel & 0x07E0) >> 3;       // .....ggg ggg..... -> gggggg00
-            uint8_t b = (pixel & 0x1F) << 3;         // ............bbbbb -> bbbbb000
-
-            mMatrixStrip->GetRenderCanvas()->SetPixel(row, col, r, g, b);
-          }
-
-        }
-
-        mMatrixStrip->mFrameCount++;
-        break;
-      }
-
-    }
-    catch (std::exception& e) {
-      std::cerr <<  __FUNCTION__ << " Exception: " << e.what() << "\n";
-    }
-  }
-//  while (GetThreadRunning()) {
-//    try {
-//      start = clock();
-//
-//      boost::system::error_code error;
-//      size_t length = boost::asio::read(sock, boost::asio::buffer(&data, mTotalBytes), boost::asio::transfer_exactly(mTotalBytes), error);
-//
-//      numBytesReceived += length;
-//
-//      // Ended early! No bueno!
-//      if (error == boost::asio::error::eof){
-////        printf("Eof\n"); fflush(stdout);
-//        break;
-//      }
-//      else if (error) {
-//        throw boost::system::system_error(error); // Some other error.
-//      }
-//
-//
-//      uint16_t *sBuffPtr = GetInputBuffer();
-//
-//      memcpy(sBuffPtr, data, length);
-////      SwapBuffers();
-//
-//
-//      boost::asio::write(sock, boost::asio::buffer(returnData, 1));
 //
 //
 //      if (numBytesReceived == mTotalBytes) {
@@ -171,20 +96,88 @@ void NetworkServer::ReceiveDataThread(tcp::socket sock) {
 //        mAverage = (mTotalDelta / mNumberSamples) ;
 //        /// CLOCKS_PER_SEC
 //
-////        mMatrixStrip->LockMutex();
-//        memcpy(mMatrixStrip->GetRenderCanvas(), GetInputBuffer(), mTotalBytes);
-////        mMatrixStrip->UnlockMutex();
-////        memset(mMatrixStrip->GetInputBuffer(), nColor++, mTotalBytes);
+////        uint8_t r = (nColor & 0xF800) >> 8;       // rrrrr... ........ -> rrrrr000
+////        uint8_t g = (nColor & 0x07E0) >> 3;       // .....ggg ggg..... -> gggggg00
+////        uint8_t b = (nColor & 0x1F) << 3;         // ............bbbbb -> bbbbb000
+////        mMatrixStrip->GetDisplayCanvas()->Fill(r,g,b);
+//#ifdef __MATRIX_STRIP_BOTTOM_UP__
+//        int ptrIndex = mTotalPixels - 1;
+//#else
+//        int ptrIndex = 0;
+//#endif
+//        uint16_t *outputBuff = data;
 //
-//        mMatrixStrip->mFrameCount++;
-//        break;
-//      }
+//        int col = 0;
+//        int row = mMatrixStrip->mCanvasWidth;
+//        for (; row > 0 ; row--) {
 //
-//    }
-//    catch (std::exception& e) {
-//      std::cerr <<  __FUNCTION__ << " Exception: " << e.what() << "\n";
-//    }
-//  }
+//          col = 0;
+//          for (; col < mMatrixStrip->mCanvasHeight; col++) {
+//
+//#ifdef __MATRIX_STRIP_BOTTOM_UP__
+//            uint16_t pixel = outputBuff[ptrIndex--];
+////            pixel = nColor;
+//#else
+//            uint16_t pixel = outputBuff[ptrIndex++];
+//#endif
+//            // Color separation based off : https://stackoverflow.com/questions/38557734/how-to-convert-16-bit-hex-color-to-rgb888-values-in-c
+//            uint8_t r = (pixel & 0xF800) >> 8;       // rrrrr... ........ -> rrrrr000
+//            uint8_t g = (pixel & 0x07E0) >> 3;       // .....ggg ggg..... -> gggggg00
+//            uint8_t b = (pixel & 0x1F) << 3;         // ............bbbbb -> bbbbb000
+//
+//            mMatrixStrip->GetRenderCanvas()->SetPixel(row, col, r, g, b);
+//          }
+//
+//        }
+
+
+
+
+      if (numBytesReceived == mTotalBytes) {
+        end = clock();
+
+        mNumberSamples++;
+        double delta = (end - start);
+        mTotalDelta += delta;
+        mAverage = (mTotalDelta / mNumberSamples) ;
+        /// CLOCKS_PER_SEC
+
+//        uint8_t r = (nColor & 0xF800) >> 8;       // rrrrr... ........ -> rrrrr000
+//        uint8_t g = (nColor & 0x07E0) >> 3;       // .....ggg ggg..... -> gggggg00
+//        uint8_t b = (nColor & 0x1F) << 3;         // ............bbbbb -> bbbbb000
+//        mMatrixStrip->GetDisplayCanvas()->Fill(r,g,b);
+        int ptrIndex = mTotalPixels - 1;
+        uint16_t *outputBuff = data;
+
+        int col = 0;
+        int row = mMatrixStrip->mCanvasWidth;
+        for (; row > 0 ; row--) {
+
+          col = 0;
+          for (; col < mMatrixStrip->mCanvasHeight; col++) {
+
+            uint16_t pixel = outputBuff[ptrIndex--];
+            // Color separation based off : https://stackoverflow.com/questions/38557734/how-to-convert-16-bit-hex-color-to-rgb888-values-in-c
+            uint8_t r = (pixel & 0xF800) >> 8;       // rrrrr... ........ -> rrrrr000
+            uint8_t g = (pixel & 0x07E0) >> 3;       // .....ggg ggg..... -> gggggg00
+            uint8_t b = (pixel & 0x1F) << 3;         // ............bbbbb -> bbbbb000
+
+            mMatrixStrip->GetRenderCanvas()->SetPixel(row, col, r, g, b);
+          }
+
+        }
+
+
+//        if ((mFrameCount % 10) == 0) printf("%i\n",mFrameCount);
+        mMatrixStrip->mFrameCount++;
+        break;
+      }
+
+    }
+    catch (std::exception& e) {
+      std::cerr <<  __FUNCTION__ << " Exception: " << e.what() << "\n";
+    }
+  }
 
   mFrameCount++;
 }
@@ -197,16 +190,62 @@ void NetworkServer::ServerStartingThread() {
   unsigned short port = 9890;
   tcp::acceptor a(io_context, tcp::endpoint(tcp::v4(), port));
 
-  printf("%s\n", __FUNCTION__);
+  sched_param sch_params;
+  sch_params.sched_priority = 99;
+
+  int affinity_mask = (1<<2);
+
+  cpu_set_t cpu_mask;
+  CPU_ZERO(&cpu_mask);
+
+  for (int i = 0; i < 32; ++i) {
+    if ((affinity_mask & (1<<i)) != 0) {
+      CPU_SET(i, &cpu_mask);
+    }
+  }
+
   while (mThreadRunning) {
     mThread = std::thread(&NetworkServer::ReceiveDataThread, this, a.accept());
+    pthread_setschedparam(mThread.native_handle(), SCHED_FIFO, &sch_params);
+
+    int err;
+
+    if ((err=pthread_setaffinity_np(mThread.native_handle(), sizeof(cpu_mask), &cpu_mask))) {
+      fprintf(stderr, "FYI: Couldn't set affinity 0x%x: %s\n",
+              affinity_mask, strerror(err));
+    }
+
     mThread.detach();
   }
 }
 
 void NetworkServer::StartThread() {
+  sched_param sch_params;
+  sch_params.sched_priority = 99;
 
-  std::thread(&NetworkServer::ServerStartingThread, this).detach();
+  int affinity_mask = (1<<1);
+  cpu_set_t cpu_mask;
+  CPU_ZERO(&cpu_mask);
+
+  for (int i = 0; i < 32; ++i) {
+    if ((affinity_mask & (1<<i)) != 0) {
+      CPU_SET(i, &cpu_mask);
+    }
+  }
+
+  int err;
+
+  std::thread starterThread = std::thread(&NetworkServer::ServerStartingThread, this);
+
+  pthread_setschedparam(starterThread.native_handle(), SCHED_FIFO, &sch_params);
+
+  if ((err=pthread_setaffinity_np(starterThread.native_handle(), sizeof(cpu_mask), &cpu_mask))) {
+    fprintf(stderr, "FYI: Couldn't set affinity 0x%x: %s\n",
+            affinity_mask, strerror(err));
+  }
+
+
+  starterThread.detach();
 //
 //  mThreadRunning = true;
 //
